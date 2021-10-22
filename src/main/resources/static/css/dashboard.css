@@ -1,0 +1,38 @@
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+body {
+  background-color: whitesmoke;
+}
+
+nav {
+  background-color: white;
+}
+
+#logged {
+  margin-top: 15px;
+  margin-bottom: 15px;
+  width: 70%;
+  padding-left: 25%;
+  color: black;
+}
+
+#logged #join-dialog {
+  background-color: #4fa6cb;
+  color: black;
+}
+
+#logged #join-dialog #joinBtn {
+  background-color: white;
+  border-radius: 8px;
+  color: black;
+}
+
+#logged #join-dialog #login-info form #logoutBtn {
+  background-color: white;
+  color: black;
+  border-radius: 8px;
+}
+/*# sourceMappingURL=dashboard.css.map */

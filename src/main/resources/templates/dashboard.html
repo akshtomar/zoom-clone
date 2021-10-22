@@ -1,0 +1,83 @@
+<html>
+<html xmlns:th="http://www.thymeleaf.org">
+<html lang="en">
+
+<head>
+	<title>Dashboard</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1" charset="utf-8">
+	<link rel="icon" th:href="@{images/zoomLeaf.png}">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+	<link rel="stylesheet" th:href="@{/css/dashboard.css}">
+</head>
+
+<body>
+
+<nav class="navbar navbar-dark bg-dark">
+	<a class="navbar-brand" href="#" th:href="@{/}">
+		<img  th:src="@{images/ZoomLogo.png}" class="d-inline-block align-top" alt="">
+	</a>
+	<a class="navbar-brand" href="#" th:href="@{/schedule}">
+		<img th:src="@{images/schedule.png}" class="d-inline-block align-top" alt="" width="40" height="35"><br> Schedule Meet
+	</a>
+	<a th:unless ="${isWebinar}"  class="navbar-brand" href="#" th:href="@{/webinar}">
+		<img th:src="@{images/group.png}" class="d-inline-block align-top" alt="" width="80" height="55"> <br> &nbsp; Webinar
+	</a>
+	<a  th:if ="${isWebinar}"class="navbar-brand" href="#" th:href="@{/session}">
+		<img th:src="@{images/duo.png}" class="d-inline-block align-top" alt="" width="40" height="35"><br> Meet
+	</a>
+</nav>
+
+<div id="main-container" class="container">
+	<div id="logged">
+		<div id="join" class="vertical-center">
+			<div id="join-dialog" class="jumbotron">
+				<div  th:if="${message}" class="alert alert-danger" th:text="${message}"></div>
+				<h1 th:text="${isWebinar} ? 'Join Webinar':'Join Meeting'">Join Meeting</h1>
+				<form class="form-group" th:action="${isWebinar}?@{/webinar}:@{/session}" method="post">
+					<p>
+						<label>Nickname</label>
+						<input class="form-control" type="text" name="data" spellcheck="false" required="true"></input>
+					</p>
+					<p>
+						<label>Meeting Id</label>
+						<input th:if ="${sessionId == null}" class="form-control" type="text" name="session-name" spellcheck="false" required="true"></input>
+						<input th:if ="${sessionId != null}" class="form-control" type="hidden" name="session-name" required="true" th:value="${sessionId}"></input>
+						<input th:if ="${sessionId != null}" class="form-control" type="text"  th:value="${sessionId}" disabled></input>
+						<input th:if ="${isWebinar}" class="form-control" type="hidden" name="isWebinar" th:value="${isWebinar}"></input>
+
+					</p>
+					<p class="text-center">
+						<button class="btn btn-lg" id="joinBtn" type="submit"> <img th:src="@{/images/zoom1.png}" alt=""
+																					width="40" height="35">Join!</button>
+					</p>
+				</form>
+				<hr>
+				<div id="login-info">
+					<div>Logged as <span th:text="${username}" id="name-user"></span></div>
+					<form action="/logout" method="post">
+						<button class="btn" id="logoutBtn" type="submit">Log out</button>
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<footer class="footer">
+	<div class="container">
+		<div class="text-muted">Java © 2021</div>
+	</div>
+</footer>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+<script>
+	window.onload = function () { // Generate participant info
+		//$("input[name='session-name']").val("Session" + Math.floor(Math.random() * 10));
+		$("input[name='data']").val("Participant " + Math.floor(Math.random() * 100));
+	}
+</script>
+
+</html>

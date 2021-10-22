@@ -1,0 +1,398 @@
+<html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <title>Webinar</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="utf-8">
+    <link rel="icon" href="images/zoomLeaf.png" th:href="@{images/zoomLeaf.png}">
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="session.css" th:href="@{/css/session.css}">
+</head>
+
+<body>
+
+<nav class="navbar navbar-dark bg-dark">
+    <a class="navbar-brand" href="#" >
+        <img src="images/ZoomLogo.png" width="120" height="30" th:src="@{images/ZoomLogo.png}"
+             class="d-inline-block align-top" alt="">
+    </a>
+    <div id="session-header">
+        <h3 th:text="${sessionName}" id="session-title"></h3>
+       <form action="/leave-session" method="post">
+            <input type="hidden" name="session-name" th:value="${sessionName}"></input>
+            <input type="hidden" name="token" th:value="${token}"></input>
+            <button id="buttonLeaveSession" class="btn btn-large btn-danger" type="submit" onclick="leaveSession()">
+                Leave session</button>
+        </form>
+    </div>
+</nav>
+
+<div id="main-container" class="container">
+    <div id="logged">
+        <div id="session">
+            <div id="main-video" class="col-md-6" style="width:75%;">
+                <p class="nickName"></p>
+                <p class="userName"></p>
+                <video autoplay="autoplay"  playsinline="true" ></video>
+            </div>
+            <div id="session-chat">
+                    <div id="send-msg-div"  style="position: relative; left: 0; bottom: 20;">
+                    <input id="message" type="text" name="message" style="color: black; border-width: 5px; border-left-width:5px; border-color:#0ba8e8; border-left-color:black;"></input>
+                    <button id="sendMessage" class="btn btn-large btn-info" type="button">
+                        Send
+                    </button>
+                    </div>
+            </div>
+            <div id="video-container" class="col-md-6" style="display:none"></div>
+        </div>
+    </div>
+</div>
+
+<footer class="footer">
+    <div class="container">
+        <div class="row" id="controls">
+            <button class="btn btn-large col-2" type="submit" onclick="shareScreen()">
+                <img src="images/share-screen.png" th:src="@{images/share-screen.png}" width="40" height="35"
+                     alt="Screen Share"><br> Share Screen
+            </button>
+            <button class="btn btn-large col-2" type="submit" onclick="recordSession()">
+                <img src="images/camera.png" th:src="@{images/camera.png}" width="40" height="35" alt="Record"> <br>
+                Record
+            </button>
+            <button class="btn btn-large col-2" type="submit" id="stopVideo" onclick="stopVideo()">
+                <img src="images/video-off-outline.svg" th:src="@{images/video-off-outline.svg}" width="40" height="40"
+                     alt="Video off"><br>Video Off
+            </button>
+
+            <button class="btn btn-large col-2" type="submit" id="startVideo" onclick="startVideo()">
+                <img src="images/video-player.png" th:src="@{images/video-player.png}" width="40" height="30"
+                     alt="Video on"> <br>Video On
+            </button>
+            <button class="btn btn-large col-2" type="submit"  id="mute" onclick="muteAudio()">
+                <img src="images/mic-off.svg" th:src="@{images/mic-off.svg}" width="40" height="30" alt="mute"><br> Mute
+            </button>
+            <button class="btn btn-large col-2" type="submit" id="unMute" onclick="connectAudio()"><img
+                    src="images/mic-on.png" th:src="@{images/mic-on.png}" width="40" height="36" alt="unmute"><br>Unmute
+            </button>
+            <button class="btn btn-large col-2 controls" type="button"  id="linkButton" onclick="copyLink()">
+                <img src="images/link.png"  th:src="@{images/link.png}" width="40" height="35" alt="Invite Link"><br> Invite Link
+            </button>
+            <button class="btn btn-large col-2 controls" type="button"  id="chat">
+                <img src="images/link.png"  th:src="@{images/chat.png}" width="40" height="35" alt="Chat"><br> Chat</button>
+
+        </div>
+    </div>
+</footer>
+<script src="/openvidu-browser-2.18.0.js" th:src="@{/openvidu-browser-2.18.0.js}"></script>
+<script>
+        $(document).ready(function () {
+             $("#startVideo").hide();
+             $("#unMute").hide();
+
+             $("#startVideo").click(function () {
+                $("#startVideo").toggle();
+                $("#stopVideo").toggle();
+            });
+            $("#stopVideo").click(function () {
+                $("#startVideo").toggle();
+                $("#stopVideo").toggle();
+            });
+
+             $("#mute").click(function () {
+                $("#mute").toggle();
+                $("#unMute").toggle();
+            });
+
+            $("#unMute").click(function () {
+                $("#mute").toggle();
+                $("#unMute").toggle();
+            });
+
+            $("#chat").click(function () {
+                $("#session-chat").toggle();
+            });
+
+        });
+</script>
+</body>
+
+<script th:inline="javascript">
+
+	// Get all the attributes from the template in Thymeleaf style
+	var sessionName = [[${ sessionName }]];
+	var token = [[${ token }]];
+	var nickName = [[${ nickName }]];
+	var userName = [[${ userName }]];
+	var currentPublisher;
+	var currentSession;
+	console.log('Request of TOKEN gone WELL (TOKEN:' + token + ')');
+
+	// --- 1) Get an OpenVidu object ---
+
+	OV = new OpenVidu();
+
+	// --- 2) Init a session ---
+
+	session = OV.initSession();
+	currentSession = session;
+	// --- 3) Specify the actions when events take place in the session ---
+
+	// On every new Stream received...
+	session.on('streamCreated', (event) => {
+
+		// Subscribe to the Stream to receive it
+		// HTML video will be appended to element with 'video-container' id
+		var subscriber = session.subscribe(event.stream, 'video-container');
+
+		// When the HTML video has been appended to DOM...
+		subscriber.on('videoElementCreated', (event) => {
+
+			// Add a new HTML element for the user's name and nickname over its video
+			appendUserData(event.element, subscriber.stream.connection);
+		});
+	});
+
+	// On every Stream destroyed...
+	session.on('streamDestroyed', (event) => {
+		// Delete the HTML element with the user's name and nickname
+		removeUserData(event.stream.connection);
+	});
+
+	// chat messages receiver
+	session.on('signal:my-chat', (event) => {
+    console.log(event.data); // Message
+    console.log(event.from); // Connection object of the sender
+    console.log(event.type); // The type of message ("my-chat")
+    var messageArea = document.getElementById("session-chat");
+    const element = document.createElement("h5");
+    const node = document.createTextNode(event.data);
+    element.appendChild(node);
+    messageArea.appendChild(element);
+	});
+
+
+	// On every asynchronous exception...
+	session.on('exception', (exception) => {
+		console.warn(exception);
+	});
+
+	// --- 4) Connect to the session passing the retrieved token and some more data from
+	//        the client (in this case a JSON with the nickname chosen by the user) ---
+
+	session.connect(token, { clientData: nickName })
+		.then(() => {
+
+			// --- 5) Set page layout for active call ---
+
+			$('#session-title').text(sessionName);
+			$('#join').hide();
+			$('#session').show();
+
+
+			// Here we check somehow if the user has 'PUBLISHER' role before
+			// trying to publish its stream. Even if someone modified the client's code and
+			// published the stream, it wouldn't work if the token sent in Session.connect
+			// method is not recognized as 'PUBLIHSER' role by OpenVidu Server
+			if (isPublisher()) {
+
+				// --- 6) Get your own camera stream ---
+
+				var publisher = OV.initPublisher('video-container', {
+					audioSource: undefined, // The source of audio. If undefined default microphone
+					videoSource: undefined, // The source of video. If undefined default webcam
+					publishAudio: true,  	// Whether you want to start publishing with your audio unmuted or not
+					publishVideo: true,  	// Whether you want to start publishing with your video enabled or not
+					//resolution: '640x480',  // The resolution of your video
+					resolution: '1280x720',  // The resolution of your video
+					frameRate: 30,			// The frame rate of your video
+					insertMode: 'APPEND',	// How the video is inserted in the target element 'video-container'
+					mirror: true       	// Whether to mirror your local video or not
+				});
+				currentPublisher = publisher;
+
+				var sendBtn = document.getElementById("sendMessage");
+				sendBtn.addEventListener("click", sendMessage);
+
+				// --- 7) Specify the actions when events take place in our publisher ---
+
+				// When our HTML video has been added to DOM...
+				publisher.on('videoElementCreated', (event) => {
+					// Init the main video with ours and append our data
+					var userData = {
+						nickName: nickName,
+						userName: userName
+					};
+					initMainVideo(event.element, userData);
+					appendUserData(event.element, userData);
+					$(event.element).prop('muted', true); // Mute local video
+				});
+
+				// --- 8) Publish your stream ---
+
+				session.publish(publisher);
+
+			} else {
+				console.warn('You don\'t have permissions to publish');
+				initMainVideoThumbnail(); // Show SUBSCRIBER message in main video
+			}
+		})
+		.catch(error => {
+			console.warn('There was an error connecting to the session:', error.code, error.message);
+		});
+
+
+	function leaveSession() {
+
+		// --- 9) Leave the session by calling 'disconnect' method over the Session object ---
+		session.disconnect();
+	}
+
+	function appendUserData(videoElement, connection) {
+		var clientData;
+		var serverData;
+		var nodeId;
+		if (connection.nickName) { // Appending local video data
+			clientData = connection.nickName;
+			serverData = connection.userName;
+			nodeId = 'main-videodata';
+		} else {
+			clientData = JSON.parse(connection.data.split('%/%')[0]).clientData;
+			serverData = JSON.parse(connection.data.split('%/%')[1]).serverData;
+			nodeId = connection.connectionId;
+		}
+		var dataNode = document.createElement('div');
+		dataNode.className = "data-node";
+		dataNode.id = "data-" + nodeId;
+		dataNode.innerHTML = '<p class="nickName">' + clientData + '</p><p class="userName">' + serverData + '</p>';
+		videoElement.parentNode.insertBefore(dataNode, videoElement.nextSibling);
+		addClickListener(videoElement, clientData, serverData);
+	}
+
+	function removeUserData(connection) {
+		var userNameRemoved = $("#data-" + connection.connectionId);
+		if ($(userNameRemoved).find('p.userName').html() === $('#main-video p.userName').html()) {
+			cleanMainVideo(); // The participant focused in the main video has left
+		}
+		$("#data-" + connection.connectionId).remove();
+	}
+
+	function removeAllUserData() {
+		$(".data-node").remove();
+	}
+
+	function cleanMainVideo() {
+		$('#main-video video').get(0).srcObject = null;
+		$('#main-video p').each(function () {
+			$(this).html('');
+		});
+	}
+
+	function addClickListener(videoElement, clientData, serverData) {
+		videoElement.addEventListener('click', function () {
+			var mainVideo = $('#main-video video').get(0);
+			if (mainVideo.srcObject !== videoElement.srcObject) {
+				$('#main-video').fadeOut("fast", () => {
+					$('#main-video p.nickName').html(clientData);
+					$('#main-video p.userName').html(serverData);
+					mainVideo.srcObject = videoElement.srcObject;
+					$('#main-video').fadeIn("fast");
+				});
+			}
+		});
+	}
+
+	function initMainVideo(videoElement, userData) {
+		$('#main-video video').get(0).srcObject = videoElement.srcObject;
+		$('#main-video p.nickName').html(userData.nickName);
+		$('#main-video p.userName').html(userData.userName);
+		$('#main-video video').prop('muted', true);
+	}
+
+	function initMainVideoThumbnail() {
+		$('#main-video video').css("background", "url('images/subscriber-msg.jpg') round");
+	}
+
+	function isPublisher() {
+		return true;
+	}
+
+
+// <----------------------------------------------------------------------------------------------------------------------------------->
+   //  For any new functionality create function below this section
+   //  Use currentPublisher -> to get publisher object
+   //  Use  currentSession -> to get session object
+   //  OV.initPublisher will give you new publisher  and can be used for creation a new video box Then use
+   //  the currentSession object to publish it so other can also see the new video.
+   //  OV.initSession() ===> Must not be called again as it will create a new session
+   //
+   //  Note -> All this operations are from client/browser so USE JAVASCRIPT/AJAX/JQUERY to modify the HTML ELEMENT
+   //
+
+	// Added for Stop and start video functionality
+	function stopVideo() {
+		currentPublisher.publishVideo(false);
+	}
+	function startVideo() {
+		currentPublisher.publishVideo(true);
+	}
+
+	// Added for Stop and start Audio functionality
+	function muteAudio() {
+		currentPublisher.publishAudio(false);
+	}
+	function connectAudio() {
+		currentPublisher.publishAudio(true);
+	}
+
+	function  shareScreen(){
+	var publisher = OV.initPublisher('video-container', {
+					audioSource: undefined, // The source of audio. If undefined default microphone
+					videoSource: 'screen', // The source of video. If undefined default webcam
+					publishAudio: true,  	// Whether you want to start publishing with your audio unmuted or not
+					publishVideo: true,  	// Whether you want to start publishing with your video enabled or not
+					resolution: '640x480',  // The resolution of your video
+					//resolution: '1280x720',  // The resolution of your video
+					frameRate: 30,			// The frame rate of your video
+					insertMode: 'APPEND',	// How the video is inserted in the target element 'video-container'
+					mirror: false,      	// Whether to mirror your local video or not
+					screen: true
+				});
+
+            currentSession.publish(publisher);
+	}
+
+	function recordSession(){
+		 alert("Recording......");
+	}
+
+	// -- Chat Send
+	function sendMessage(){
+		var msg = document.getElementById("message");
+		var data= nickName + " : " +msg.value;
+		console.log(msg.value)
+		session.signal({
+			data: data,  // Any string (optional)
+			to: [],                     // Array of Connection objects (optional. Broadcast to everyone if empty)
+			type: 'my-chat'             // The type of message (optional)
+			})
+			.then(() => {
+				console.log('Message successfully sent');
+				})
+			.catch(error => {
+					console.error(error);
+					});
+	}
+
+	function copyLink(){
+		var session = [[${ sessionName }]];
+		var url = location.href;
+    	var meetingLink= url+"/"+session
+    	navigator.clipboard.writeText(meetingLink);
+    	alert( "Link Copied !!! - " + meetingLink);
+	}
+</script>
+
+</html>

@@ -1,0 +1,19 @@
+body {
+  background-color: whitesmoke;
+  color: black;
+}
+
+form {
+  margin: auto;
+  padding: auto;
+  margin-top: 15px;
+  margin-bottom: 15px;
+}
+
+form #registerBtn {
+  background-color: #f16f3c;
+  color: white;
+  border-radius: 8px;
+  margin-left: 40%;
+}
+/*# sourceMappingURL=register.css.map */
